@@ -1,0 +1,93 @@
+#pragma version 5
+// check if the app is being created
+// if so save creator
+int 0
+txn ApplicationID
+==
+bz not_creation
+byte "Creator"
+txn Sender
+app_global_put
+byte "depositAmount"
+int 0
+app_global_put
+int 1
+return
+not_creation:
+// check if this is deletion ---
+int DeleteApplication
+txn OnCompletion
+==
+bz not_deletion
+//check if deletor is creator
+byte "Creator"
+app_global_get
+txn Sender
+==
+bz failed
+int 1
+return
+not_deletion:
+//---
+// check if this is update ---
+int UpdateApplication
+txn OnCompletion
+==
+bz not_update
+byte "Creator"
+app_global_get
+txn Sender
+==
+bz failed
+int 1
+return
+not_update:
+//---
+// check for closeout
+int CloseOut
+txn OnCompletion
+==
+bnz close_out
+//opt in app
+txna ApplicationArgs 0
+byte "addasset"
+==
+bnz addasset
+// register
+txna ApplicationArgs 0
+byte "register"
+==
+bnz register
+addasset:
+//opt in to asset
+itxn_begin
+int axfer
+itxn_field TypeEnum
+global CurrentApplicationAddress
+itxn_field AssetReceiver
+//Asset ID must be in the assets array
+txn Assets 0
+itxn_field XferAsset
+// send 10
+int 0
+itxn_field AssetAmount
+itxn_submit
+int 1
+return
+register:
+int OptIn
+txn OnCompletion
+==
+bz failed
+int 1
+return
+//call if this is a closeout op
+close_out:
+int 1
+return
+failed:
+int 0
+return
+finished:
+int 1
+return
